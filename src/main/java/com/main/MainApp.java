@@ -26,7 +26,7 @@ public class MainApp {
     }
 
     private static Map<InetAddress,List<InetAddress>> accessMap = new HashMap<>();
-
+    private static Map<InetAddress,InetAddress> synFloodMap = new HashMap<>();
     //main method for capturing the packets
     public static void main(String[] args) throws UnknownHostException, PcapNativeException, NotOpenException, EOFException, TimeoutException {
         PcapNetworkInterface nif = getInterface();
@@ -90,11 +90,11 @@ public class MainApp {
         };
 
         try{
-            long startTime = System.currentTimeMillis();
-            while((System.currentTimeMillis() - startTime) < 3600000*6){
+            //long startTime = System.currentTimeMillis();
+            //while((System.currentTimeMillis() - startTime) < 3600000*6){
                 int maxPackets = 200;
                 handle.loop(maxPackets, listener);
-            }
+          //  }
         }catch (InterruptedException e){
             e.printStackTrace();
         }
@@ -130,6 +130,7 @@ public class MainApp {
 
         return result.toString();
     }
+
 
     public static void addAddresses(InetAddress srcAddress, InetAddress destAddress){
         if(srcAddress != null && destAddress != null) {
