@@ -54,10 +54,10 @@ public class SynFloodAnalyzer {
             }
         }
         now = LocalDateTime.now();
-
-        if((max_appearances/synFloodMap.size()) * 100 >= percentage_appearances && !((synFloodMap.size() / 200 * 100) < PERCENTAGE || duration >= EXPECTED_DURATION)){
-            isDDoS = true;
-        }
+        if(synFloodMap.size()!=0)
+            if((max_appearances/synFloodMap.size()) * 100 >= percentage_appearances && !((synFloodMap.size() / 200 * 100) < PERCENTAGE || duration >= EXPECTED_DURATION)){
+                isDDoS = true;
+            }
 
         return isDDoS;
     }
