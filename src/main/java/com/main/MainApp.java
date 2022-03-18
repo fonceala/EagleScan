@@ -30,6 +30,7 @@ public class MainApp {
 
     private static final Map<InetAddress,List<InetAddress>> accessMap = new HashMap<>();
     private static Map<String,InetAddress> synFloodMap = new HashMap<>();
+    final static int maxPackets = 1500;
     //main method for capturing the packets
     public static void main(String[] args) throws UnknownHostException, PcapNativeException, NotOpenException, EOFException, TimeoutException {
         Logger.getLogger("ac.biu.nlp.nlp.engineml").setLevel(Level.OFF);
@@ -63,7 +64,7 @@ public class MainApp {
                         synFloodMap = new HashMap<>();
                     }
 
-                    if(packetNumber == 200){
+                    if(packetNumber == maxPackets){
                         finishTime = System.currentTimeMillis();
                         packetNumber = 0;
                     }
@@ -120,7 +121,7 @@ public class MainApp {
                    if(startTime != 0 && finishTime != 0){
                        long executionTime = finishTime - startTime;
                        //System.out.println("it took " + executionTime + " milliseconds to execute");
-                       analyzer = new SynFloodAnalyzer(synFloodMap,executionTime);
+                       analyzer = new SynFloodAnalyzer(synFloodMap,executionTime,maxPackets);
                        boolean analyzeResult = analyzer.isDoSAttack();
                        if(analyzeResult){
                                System.out.println("ALERT! DDoS ATTACK STARTED AT " + analyzer.getTime() + " WITH " + analyzer.getVictim() + " AS VICTIM");
@@ -137,7 +138,7 @@ public class MainApp {
         try{
             long startTime = System.currentTimeMillis();
             while((System.currentTimeMillis() - startTime) < 360000){
-            int maxPackets = 200;
+
             handle.loop(maxPackets, listener);
             }
         }catch (InterruptedException e){

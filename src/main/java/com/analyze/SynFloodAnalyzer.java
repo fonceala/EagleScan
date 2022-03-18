@@ -12,15 +12,17 @@ public class SynFloodAnalyzer {
     private Map<InetAddress,Integer> numOfAppearances;
 
     private long duration;
-    private final long EXPECTED_DURATION = 200;
-    private final int PERCENTAGE = 70;
+    private final long EXPECTED_DURATION = 500;
+    private final int PERCENTAGE = 90;
     private InetAddress victim;
     private LocalDateTime now;
+    private int numberOfPackets;
 
-    public SynFloodAnalyzer(Map<String,InetAddress> synFloodMap, long duration){
+    public SynFloodAnalyzer(Map<String,InetAddress> synFloodMap, long duration, int numberOfPackets){
         this.synFloodMap = synFloodMap;
         numOfAppearances = new HashMap<>();
         this.duration = duration;
+        this.numberOfPackets = numberOfPackets;
     }
 
     public boolean isDoSAttack(){
@@ -55,7 +57,7 @@ public class SynFloodAnalyzer {
         }
         now = LocalDateTime.now();
         if(synFloodMap.size()!=0)
-            if((max_appearances/synFloodMap.size()) * 100 >= percentage_appearances && !((synFloodMap.size() / 200 * 100) < PERCENTAGE || duration >= EXPECTED_DURATION)){
+            if((max_appearances/synFloodMap.size()) * 100 >= percentage_appearances && !((synFloodMap.size() / numberOfPackets * 100) < PERCENTAGE || duration >= EXPECTED_DURATION)){
                 isDDoS = true;
             }
 
