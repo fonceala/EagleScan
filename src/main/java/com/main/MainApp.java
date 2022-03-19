@@ -157,27 +157,6 @@ public class MainApp {
 
     }
 
-    public static String scanIP(InetAddress address){
-        String output;
-        Process p;
-        StringBuilder result = new StringBuilder();
-        try{
-            String command = "nmap -A -T4 " + address.toString().substring(1);
-            p = Runtime.getRuntime().exec(command);
-            System.out.println("The command " + command + " was executed");
-            BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            while((output = br.readLine()) != null){
-                result.append(output).append("\n");
-            }
-            p.waitFor();
-            p.destroy();
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-
-        return result.toString();
-    }
-
 
     public static void addAddresses(InetAddress srcAddress, InetAddress destAddress){
         if(srcAddress != null && destAddress != null) {
