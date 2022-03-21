@@ -1,5 +1,6 @@
 package com.main;
 
+import com.analyze.MiningPoolAnalyzer;
 import com.analyze.SynFloodAnalyzer;
 import org.pcap4j.core.*;
 import org.pcap4j.core.PcapNetworkInterface.*;
@@ -8,6 +9,7 @@ import org.pcap4j.util.NifSelector;
 
 import java.io.*;
 import java.net.InetAddress;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -30,6 +32,8 @@ public class MainApp {
 
     private static final Map<InetAddress,List<InetAddress>> accessMap = new HashMap<>();
     private static Map<String,InetAddress> synFloodMap = new HashMap<>();
+    private static MiningPoolAnalyzer miningPoolAnalyzer = new MiningPoolAnalyzer();
+
     final static int maxPackets = 1500;
     //main method for capturing the packets
     public static void main(String[] args) throws UnknownHostException, PcapNativeException, NotOpenException, EOFException, TimeoutException {
@@ -94,7 +98,7 @@ public class MainApp {
                         ipV6Header = ipV6Packet.getHeader();
                         destAddress = ipV6Header.getDstAddr();
                         srcAddress = ipV6Header.getSrcAddr();
-                       // System.out.println(ipV6Header);
+                        //System.out.println(ipV6Header);
                         isNull = false;
                     }
 
@@ -117,7 +121,12 @@ public class MainApp {
                     //if(isNull)System.out.println("No packet data could be captured");
 
                    addAddresses(srcAddress,destAddress);
-
+                    if(destAddress != null && srcAddress != null ) {
+                        String miningPool = miningPoolAnalyzer.isMining(destAddress.toString().substring(1));
+                        if (miningPool != null) {
+                            System.out.println("ALERT! machine corresponding to the address" + srcAddress.toString().substring(1) + " has accessed crypto mining website: " + miningPool);
+                        }
+                    }
                    if(startTime != 0 && finishTime != 0){
                        long executionTime = finishTime - startTime;
                        //System.out.println("it took " + executionTime + " milliseconds to execute");
@@ -145,13 +154,13 @@ public class MainApp {
             e.printStackTrace();
         }
 
-//        System.out.println(" The source addresses were the following");
-//        for(InetAddress s: accessMap.keySet()){
-//            System.out.println(s.toString().substring(1));
-//            for(InetAddress d:accessMap.get(s)){
-//                System.out.println("\t"+"|-" + d.toString().substring(1));
-//            }
-//        }
+        System.out.println(" The source addresses were the following");
+        for(InetAddress s: accessMap.keySet()){
+            System.out.println(s.toString().substring(1));
+            for(InetAddress d:accessMap.get(s)){
+                System.out.println("\t"+"|-" + d.toString().substring(1));
+            }
+        }
 
         handle.close();
 

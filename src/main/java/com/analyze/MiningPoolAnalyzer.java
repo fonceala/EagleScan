@@ -4,6 +4,7 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,16 +13,24 @@ public class MiningPoolAnalyzer {
     private Map<String,String> miningPoolIP;
     private final String MINING_POOLS = "ips.txt";
 
-    public MiningPoolAnalyzer() throws URISyntaxException, IOException, IllegalAccessException {
+    public MiningPoolAnalyzer() {
         this.miningPoolIP = new HashMap<>();
         parseMap();
     }
 
-    public boolean scanIP(String addr){
+    public String isMining(String addr){
+        String miningWebsite = null;
+        for(String dst: miningPoolIP.keySet()){
+            if(dst.equals(addr)){
+                miningWebsite = miningPoolIP.get(dst);
+                return miningWebsite;
+            }
+        }
 
+        return null;
     }
 
-    private void parseMap() throws IllegalAccessException, URISyntaxException, IOException {
+    private void parseMap() {
 
         ClassLoader classLoader = getClass().getClassLoader();
 
@@ -30,17 +39,34 @@ public class MiningPoolAnalyzer {
         URL resource = classLoader.getResource(MINING_POOLS);
 
         if(resource == null){
-            throw new IllegalAccessException("file not found!" + MINING_POOLS);
+            try {
+                throw new IllegalAccessException("file not found!" + MINING_POOLS);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
         }else{
-            miningAddrs = new File(resource.toURI());
+            try {
+                miningAddrs = new File(resource.toURI());
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+            }
         }
 
-        BufferedReader reader = new BufferedReader(new FileReader(miningAddrs));
+        BufferedReader reader = null;
+        try {
+            reader = new BufferedReader(new FileReader(miningAddrs));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
         String line;
 
-        while((line = reader.readLine()) != null){
-            String[] values = line.split("=");
-            miningPoolIP.put(values[0],values[1]);
+        try {
+            while ((line = reader.readLine()) != null) {
+                String[] values = line.split("=");
+                miningPoolIP.put(values[0], values[1]);
+            }
+        }catch (IOException e){
+            e.printStackTrace();
         }
 
     }
