@@ -7,6 +7,9 @@ import org.pcap4j.core.PcapNetworkInterface.*;
 import org.pcap4j.packet.*;
 import org.pcap4j.util.NifSelector;
 
+import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.URISyntaxException;
@@ -17,7 +20,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class MainApp {
+public class MainApp extends JFrame {
+
 
     static PcapNetworkInterface getInterface(){
         PcapNetworkInterface device = null;
@@ -32,137 +36,172 @@ public class MainApp {
 
     private static final Map<InetAddress,List<InetAddress>> accessMap = new HashMap<>();
     private static Map<String,InetAddress> synFloodMap = new HashMap<>();
-    private static MiningPoolAnalyzer miningPoolAnalyzer = new MiningPoolAnalyzer();
+    private static final MiningPoolAnalyzer miningPoolAnalyzer = new MiningPoolAnalyzer();
 
     final static int maxPackets = 1500;
     //main method for capturing the packets
     public static void main(String[] args) throws UnknownHostException, PcapNativeException, NotOpenException, EOFException, TimeoutException {
-        Logger.getLogger("ac.biu.nlp.nlp.engineml").setLevel(Level.OFF);
+        JFrame frame = new JFrame("Eagle Scan");
+        JPanel panel = new JPanel();
+
+        List<PcapNetworkInterface> nifs = Pcaps.findAllDevs();
+        String[] nifList = new String[nifs.size()];
+        int i = 0;
+        for (PcapNetworkInterface p:nifs) {
+            nifList[i] = p.getName();
+            i++;
+        }
+
+        JList list = new JList(nifList);
+        panel.add(list);
+
+        frame.setSize(400,400);
+        /* Logger.getLogger("ac.biu.nlp.nlp.engineml").setLevel(Level.OFF);
         Logger.getLogger("org.BIU.utils.logging.ExperimentLogger").setLevel(Level.OFF);
-       // Logger.getRootLogger().setLevel(Level.OFF);
+        Logger.getRootLogger().setLevel(Level.OFF);
 
-        PcapNetworkInterface nif = getInterface();
+
         System.out.println("You chose " + nif.getName());
-        System.out.println(nif.getName());
+        System.out.println(nif.getName());*/
 
-        int snaplen = 1280000;
+        JButton button = new JButton("Select NIF");
 
-        PromiscuousMode mode = PcapNetworkInterface.PromiscuousMode.PROMISCUOUS;
-        int timeout = 10;
-        PcapHandle handle = nif.openLive(snaplen, mode, timeout);
-        PacketListener listener = new PacketListener() {
-
-            int packetNumber = 0;
-            long startTime = 0;
-            long finishTime = 0;
-            SynFloodAnalyzer analyzer;
-            boolean isDDoS = false;
-
-
+        button.addActionListener(new ActionListener() {
             @Override
-            public void gotPacket(PcapPacket pcapPacket) {
+            public void actionPerformed(ActionEvent actionEvent) {
+                PcapNetworkInterface nif = findInterface(list.getSelectedValue().toString(),nifs);
 
-                    packetNumber++;
-                    if (packetNumber == 1){
-                        startTime = System.currentTimeMillis();
-                        synFloodMap = new HashMap<>();
-                    }
+                int snaplen = 12800000;
 
-                    if(packetNumber == maxPackets){
-                        finishTime = System.currentTimeMillis();
-                        packetNumber = 0;
-                    }
+                PromiscuousMode mode = PcapNetworkInterface.PromiscuousMode.PROMISCUOUS;
+                int timeout = 10;
+                PcapHandle handle = null;
+                try {
+                    assert nif != null;
+                    handle = nif.openLive(snaplen, mode, timeout);
+                } catch (PcapNativeException e) {
+                    e.printStackTrace();
+                }
+                PacketListener listener = new PacketListener() {
 
-                    IpV6Packet.IpV6Header ipV6Header = null;
-                    IpV4Packet.IpV4Header ipV4Header = null;
-                    TcpPacket.TcpHeader tcpHeader = null;
-                    UdpPacket.UdpHeader udpHeader = null;
-                    InetAddress destAddress = null;
-                    InetAddress srcAddress = null;
-                    IpV6Packet ipV6Packet = pcapPacket.get(IpV6Packet.class);
-                    IpV4Packet ipV4Packet = pcapPacket.get(IpV4Packet.class);
-                    TcpPacket tcpPacket = pcapPacket.get(TcpPacket.class);
-                    UdpPacket udpPacket = pcapPacket.get(UdpPacket.class);
+                    int packetNumber = 0;
+                    long startTime = 0;
+                    long finishTime = 0;
+                    SynFloodAnalyzer analyzer;
+                    boolean isDDoS = false;
 
-                    boolean isNull = true;
 
-                    if(ipV4Packet!=null){
-                        ipV4Header = ipV4Packet.getHeader();
-                        destAddress = ipV4Header.getDstAddr();
-                        srcAddress = ipV4Header.getSrcAddr();
-                        //System.out.println(ipV4Header);
-                        isNull = false;
-                    }
+                    @Override
+                    public void gotPacket(PcapPacket pcapPacket) {
 
-                    if(ipV6Packet != null){
-                        ipV6Header = ipV6Packet.getHeader();
-                        destAddress = ipV6Header.getDstAddr();
-                        srcAddress = ipV6Header.getSrcAddr();
-                        //System.out.println(ipV6Header);
-                        isNull = false;
-                    }
+                        packetNumber++;
+                        if (packetNumber == 1){
+                            startTime = System.currentTimeMillis();
+                            synFloodMap = new HashMap<>();
+                        }
 
-                    if(tcpPacket != null){
-                        tcpHeader = tcpPacket.getHeader();
-                        if(tcpHeader.getSyn() && !tcpHeader.getAck() && !tcpHeader.getFin() && !tcpHeader.getRst() && !tcpHeader.getUrg() && !tcpHeader.getPsh())
-                            if(srcAddress!=null && destAddress != null) {
-                                synFloodMap.put(packetNumber + "-" + srcAddress.toString(), destAddress);
+                        if(packetNumber == maxPackets){
+                            finishTime = System.currentTimeMillis();
+                            packetNumber = 0;
+                        }
+
+                        IpV6Packet.IpV6Header ipV6Header = null;
+                        IpV4Packet.IpV4Header ipV4Header = null;
+                        TcpPacket.TcpHeader tcpHeader = null;
+                        UdpPacket.UdpHeader udpHeader = null;
+                        InetAddress destAddress = null;
+                        InetAddress srcAddress = null;
+                        IpV6Packet ipV6Packet = pcapPacket.get(IpV6Packet.class);
+                        IpV4Packet ipV4Packet = pcapPacket.get(IpV4Packet.class);
+                        TcpPacket tcpPacket = pcapPacket.get(TcpPacket.class);
+                        UdpPacket udpPacket = pcapPacket.get(UdpPacket.class);
+
+                        boolean isNull = true;
+
+                        if(ipV4Packet!=null){
+                            ipV4Header = ipV4Packet.getHeader();
+                            destAddress = ipV4Header.getDstAddr();
+                            srcAddress = ipV4Header.getSrcAddr();
+                            System.out.println(ipV4Header);
+                            isNull = false;
+                        }
+
+                        if(ipV6Packet != null){
+                            ipV6Header = ipV6Packet.getHeader();
+                            destAddress = ipV6Header.getDstAddr();
+                            srcAddress = ipV6Header.getSrcAddr();
+                            System.out.println(ipV6Header);
+                            isNull = false;
+                        }
+
+                        if(tcpPacket != null){
+                            tcpHeader = tcpPacket.getHeader();
+                            if(tcpHeader.getSyn() && !tcpHeader.getAck() && !tcpHeader.getFin() && !tcpHeader.getRst() && !tcpHeader.getUrg() && !tcpHeader.getPsh())
+                                if(srcAddress!=null && destAddress != null) {
+                                    synFloodMap.put(packetNumber + "-" + srcAddress.toString(), destAddress);
+                                }
+                            //System.out.println(tcpHeader);
+                            isNull = false;
+                        }
+
+                        if(udpPacket != null){
+                            udpHeader = udpPacket.getHeader();
+                            //  System.out.println(udpHeader);
+                            isNull = false;
+                        }
+
+                        //if(isNull)System.out.println("No packet data could be captured");
+
+                        addAddresses(srcAddress,destAddress);
+                        if(destAddress != null && srcAddress != null ) {
+                            String miningPool = miningPoolAnalyzer.isMining(destAddress.toString().substring(1));
+                            if (miningPool != null) {
+                                System.out.println("ALERT! machine corresponding to the address " + srcAddress.toString().substring(1) + " has accessed crypto mining website: " + miningPool);
                             }
-                        //System.out.println(tcpHeader);
-                        isNull = false;
-                    }
-
-                    if(udpPacket != null){
-                        udpHeader = udpPacket.getHeader();
-                      //  System.out.println(udpHeader);
-                        isNull = false;
-                    }
-
-                    //if(isNull)System.out.println("No packet data could be captured");
-
-                   addAddresses(srcAddress,destAddress);
-                    if(destAddress != null && srcAddress != null ) {
-                        String miningPool = miningPoolAnalyzer.isMining(destAddress.toString().substring(1));
-                        if (miningPool != null) {
-                            System.out.println("ALERT! machine corresponding to the address" + srcAddress.toString().substring(1) + " has accessed crypto mining website: " + miningPool);
+                        }
+                        if(startTime != 0 && finishTime != 0){
+                            long executionTime = finishTime - startTime;
+                            //System.out.println("it took " + executionTime + " milliseconds to execute");
+                            analyzer = new SynFloodAnalyzer(synFloodMap,executionTime,maxPackets);
+                            boolean analyzeResult = analyzer.isDoSAttack();
+                            if(analyzeResult){
+                                System.out.println("ALERT! DDoS ATTACK STARTED AT " + analyzer.getTime() + " WITH " + analyzer.getVictim() + " AS VICTIM");
+                                isDDoS = true;
+                            }else{
+                                isDDoS=false;
+                            }
+                            startTime = 0;
+                            finishTime = 0;
                         }
                     }
-                   if(startTime != 0 && finishTime != 0){
-                       long executionTime = finishTime - startTime;
-                       //System.out.println("it took " + executionTime + " milliseconds to execute");
-                       analyzer = new SynFloodAnalyzer(synFloodMap,executionTime,maxPackets);
-                       boolean analyzeResult = analyzer.isDoSAttack();
-                       if(analyzeResult){
-                               System.out.println("ALERT! DDoS ATTACK STARTED AT " + analyzer.getTime() + " WITH " + analyzer.getVictim() + " AS VICTIM");
-                               isDDoS = true;
-                       }else{
-                           isDDoS=false;
-                       }
-                       startTime = 0;
-                       finishTime = 0;
-                   }
+                };
+
+                try{
+                    long startTime = System.currentTimeMillis();
+                    while((System.currentTimeMillis() - startTime) < 360000){
+
+                        handle.loop(maxPackets, listener);
+                    }
+                }catch (InterruptedException | PcapNativeException | NotOpenException e){
+                    e.printStackTrace();
+                }
+
+                System.out.println(" The source addresses were the following");
+                for(InetAddress s: accessMap.keySet()){
+                    System.out.println(s.toString().substring(1));
+                    for(InetAddress d:accessMap.get(s)){
+                        System.out.println("\t"+"|-" + d.toString().substring(1));
+                    }
+                }
+
+                handle.close();
             }
-        };
+        });
 
-        try{
-            long startTime = System.currentTimeMillis();
-            while((System.currentTimeMillis() - startTime) < 360000){
 
-            handle.loop(maxPackets, listener);
-            }
-        }catch (InterruptedException e){
-            e.printStackTrace();
-        }
-
-        System.out.println(" The source addresses were the following");
-        for(InetAddress s: accessMap.keySet()){
-            System.out.println(s.toString().substring(1));
-            for(InetAddress d:accessMap.get(s)){
-                System.out.println("\t"+"|-" + d.toString().substring(1));
-            }
-        }
-
-        handle.close();
+        panel.add(button);
+        frame.add(panel);
+        frame.setVisible(true);
 
     }
 
@@ -179,5 +218,18 @@ public class MainApp {
                 }
             }
         }
+    }
+
+    public static PcapNetworkInterface findInterface(String nifName, List<PcapNetworkInterface> nifs){
+        Iterator<PcapNetworkInterface> iterator = nifs.iterator();
+        PcapNetworkInterface nif;
+        while(iterator.hasNext()){
+            nif = iterator.next();
+            if(nif.getName().equals(nifName)){
+                return nif;
+            }
+        }
+
+        return null;
     }
 }
