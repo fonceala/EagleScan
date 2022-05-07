@@ -55,15 +55,13 @@ public class MainApp extends JFrame {
         JList list = new JList(nifList);
         panel.add(list);
 
-        frame.setSize(400,400);
-        /* Logger.getLogger("ac.biu.nlp.nlp.engineml").setLevel(Level.OFF);
-        Logger.getLogger("org.BIU.utils.logging.ExperimentLogger").setLevel(Level.OFF);
-        Logger.getRootLogger().setLevel(Level.OFF);
+        frame.setSize(1000,1000);
 
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        System.out.println("You chose " + nif.getName());
-        System.out.println(nif.getName());*/
-
+        JTextArea ta = new JTextArea(400,500);
+        ta.setEditable(false);
+        JScrollPane sp = new JScrollPane(ta);
         JButton button = new JButton("Select NIF");
 
         button.addActionListener(new ActionListener() {
@@ -122,6 +120,7 @@ public class MainApp extends JFrame {
                             ipV4Header = ipV4Packet.getHeader();
                             destAddress = ipV4Header.getDstAddr();
                             srcAddress = ipV4Header.getSrcAddr();
+                            ta.append(ipV4Header.toString()+"\n");
                             System.out.println(ipV4Header);
                             isNull = false;
                         }
@@ -130,6 +129,7 @@ public class MainApp extends JFrame {
                             ipV6Header = ipV6Packet.getHeader();
                             destAddress = ipV6Header.getDstAddr();
                             srcAddress = ipV6Header.getSrcAddr();
+                            ta.append(ipV6Header.toString()+"\n");
                             System.out.println(ipV6Header);
                             isNull = false;
                         }
@@ -140,12 +140,14 @@ public class MainApp extends JFrame {
                                 if(srcAddress!=null && destAddress != null) {
                                     synFloodMap.put(packetNumber + "-" + srcAddress.toString(), destAddress);
                                 }
+                            ta.append(tcpHeader.toString());
                             //System.out.println(tcpHeader);
                             isNull = false;
                         }
 
                         if(udpPacket != null){
                             udpHeader = udpPacket.getHeader();
+                            ta.append(udpHeader.toString());
                             //  System.out.println(udpHeader);
                             isNull = false;
                         }
@@ -156,6 +158,7 @@ public class MainApp extends JFrame {
                         if(destAddress != null && srcAddress != null ) {
                             String miningPool = miningPoolAnalyzer.isMining(destAddress.toString().substring(1));
                             if (miningPool != null) {
+                                ta.append("ALERT! machine corresponding to the address " + srcAddress.toString().substring(1) + " has accessed crypto mining website: " + miningPool+"\n");
                                 System.out.println("ALERT! machine corresponding to the address " + srcAddress.toString().substring(1) + " has accessed crypto mining website: " + miningPool);
                             }
                         }
@@ -165,6 +168,7 @@ public class MainApp extends JFrame {
                             analyzer = new SynFloodAnalyzer(synFloodMap,executionTime,maxPackets);
                             boolean analyzeResult = analyzer.isDoSAttack();
                             if(analyzeResult){
+                                ta.append("ALERT! DDoS ATTACK STARTED AT " + analyzer.getTime() + " WITH " + analyzer.getVictim() + " AS VICTIM" + "\n");
                                 System.out.println("ALERT! DDoS ATTACK STARTED AT " + analyzer.getTime() + " WITH " + analyzer.getVictim() + " AS VICTIM");
                                 isDDoS = true;
                             }else{
@@ -200,6 +204,7 @@ public class MainApp extends JFrame {
 
 
         panel.add(button);
+        panel.add(sp);
         frame.add(panel);
         frame.setVisible(true);
 
