@@ -8,6 +8,7 @@ import org.pcap4j.packet.*;
 import org.pcap4j.util.NifSelector;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
@@ -15,6 +16,7 @@ import java.net.InetAddress;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
@@ -33,6 +35,8 @@ public class MainApp extends JFrame {
 
         return device;
     }
+
+    private static PcapNetworkInterface nif;
 
     private static final Map<InetAddress,List<InetAddress>> accessMap = new HashMap<>();
     private static Map<String,InetAddress> synFloodMap = new HashMap<>();
@@ -53,23 +57,22 @@ public class MainApp extends JFrame {
         }
 
         JList list = new JList(nifList);
-        panel.add(list);
 
-        frame.setSize(1000,1000);
+
+        frame.setSize(400,400);
+
+        frame.setLayout(new BorderLayout());
 
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        JTextArea ta = new JTextArea(400,500);
-        ta.setEditable(false);
-        JScrollPane sp = new JScrollPane(ta);
         JButton button = new JButton("Select NIF");
-
+        button.setSize(20,30);
         button.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                PcapNetworkInterface nif = findInterface(list.getSelectedValue().toString(),nifs);
+                nif = findInterface(list.getSelectedValue().toString(),nifs);
 
-                int snaplen = 12800000;
+                int snaplen = 128000;
 
                 PromiscuousMode mode = PcapNetworkInterface.PromiscuousMode.PROMISCUOUS;
                 int timeout = 10;
@@ -77,9 +80,15 @@ public class MainApp extends JFrame {
                 try {
                     assert nif != null;
                     handle = nif.openLive(snaplen, mode, timeout);
+                   // handle.setFilter("port 37008", BpfProgram.BpfCompileMode.OPTIMIZE);
                 } catch (PcapNativeException e) {
                     e.printStackTrace();
                 }
+//                } catch (NotOpenException e) {
+//                    e.printStackTrace();
+//                }
+                JFrame packets = new JFrame();
+                frame.setVisible(false);
                 PacketListener listener = new PacketListener() {
 
                     int packetNumber = 0;
@@ -120,7 +129,6 @@ public class MainApp extends JFrame {
                             ipV4Header = ipV4Packet.getHeader();
                             destAddress = ipV4Header.getDstAddr();
                             srcAddress = ipV4Header.getSrcAddr();
-                            ta.append(ipV4Header.toString()+"\n");
                             System.out.println(ipV4Header);
                             isNull = false;
                         }
@@ -129,7 +137,6 @@ public class MainApp extends JFrame {
                             ipV6Header = ipV6Packet.getHeader();
                             destAddress = ipV6Header.getDstAddr();
                             srcAddress = ipV6Header.getSrcAddr();
-                            ta.append(ipV6Header.toString()+"\n");
                             System.out.println(ipV6Header);
                             isNull = false;
                         }
@@ -140,15 +147,13 @@ public class MainApp extends JFrame {
                                 if(srcAddress!=null && destAddress != null) {
                                     synFloodMap.put(packetNumber + "-" + srcAddress.toString(), destAddress);
                                 }
-                            ta.append(tcpHeader.toString());
-                            //System.out.println(tcpHeader);
+                            System.out.println(tcpHeader);
                             isNull = false;
                         }
 
                         if(udpPacket != null){
                             udpHeader = udpPacket.getHeader();
-                            ta.append(udpHeader.toString());
-                            //  System.out.println(udpHeader);
+                             System.out.println(udpHeader);
                             isNull = false;
                         }
 
@@ -158,7 +163,6 @@ public class MainApp extends JFrame {
                         if(destAddress != null && srcAddress != null ) {
                             String miningPool = miningPoolAnalyzer.isMining(destAddress.toString().substring(1));
                             if (miningPool != null) {
-                                ta.append("ALERT! machine corresponding to the address " + srcAddress.toString().substring(1) + " has accessed crypto mining website: " + miningPool+"\n");
                                 System.out.println("ALERT! machine corresponding to the address " + srcAddress.toString().substring(1) + " has accessed crypto mining website: " + miningPool);
                             }
                         }
@@ -168,7 +172,6 @@ public class MainApp extends JFrame {
                             analyzer = new SynFloodAnalyzer(synFloodMap,executionTime,maxPackets);
                             boolean analyzeResult = analyzer.isDoSAttack();
                             if(analyzeResult){
-                                ta.append("ALERT! DDoS ATTACK STARTED AT " + analyzer.getTime() + " WITH " + analyzer.getVictim() + " AS VICTIM" + "\n");
                                 System.out.println("ALERT! DDoS ATTACK STARTED AT " + analyzer.getTime() + " WITH " + analyzer.getVictim() + " AS VICTIM");
                                 isDDoS = true;
                             }else{
@@ -182,8 +185,7 @@ public class MainApp extends JFrame {
 
                 try{
                     long startTime = System.currentTimeMillis();
-                    while((System.currentTimeMillis() - startTime) < 360000){
-
+                    while(true){
                         handle.loop(maxPackets, listener);
                     }
                 }catch (InterruptedException | PcapNativeException | NotOpenException e){
@@ -203,9 +205,12 @@ public class MainApp extends JFrame {
         });
 
 
-        panel.add(button);
-        panel.add(sp);
-        frame.add(panel);
+
+        panel.setLayout(new BorderLayout());
+        panel.add(list,BorderLayout.NORTH);
+        panel.add(button,BorderLayout.CENTER);
+        //panel.add(sp,BorderLayout.SOUTH);
+        frame.setContentPane(panel);
         frame.setVisible(true);
 
     }
