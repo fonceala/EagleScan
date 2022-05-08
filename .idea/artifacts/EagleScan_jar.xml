@@ -1,0 +1,13 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="EagleScan:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/EagleScan_jar</output-path>
+    <root id="archive" name="EagleScan.jar">
+      <element id="module-output" name="EagleScan" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/pcap4j/pcap4j-core/2.0.0-alpha.6/pcap4j-core-2.0.0-alpha.6.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/slf4j/slf4j-simple/1.7.36/slf4j-simple-1.7.36.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/net/java/dev/jna/jna/5.3.1/jna-5.3.1.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/pcap4j/pcap4j-packetfactory-static/2.0.0-alpha.6/pcap4j-packetfactory-static-2.0.0-alpha.6.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

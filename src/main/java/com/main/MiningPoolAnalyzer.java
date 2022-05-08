@@ -1,4 +1,4 @@
-package com.analyze;
+package com.main;
 
 import java.io.*;
 import java.net.InetAddress;

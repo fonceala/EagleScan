@@ -1,4 +1,4 @@
-package com.analyze;
+package com.main;
 
 import java.net.InetAddress;
 import java.time.LocalDateTime;
@@ -12,7 +12,7 @@ public class SynFloodAnalyzer {
     private Map<InetAddress,Integer> numOfAppearances;
 
     private long duration;
-    private final long EXPECTED_DURATION = 500;
+    private final long EXPECTED_DURATION = 2000;
     private final int PERCENTAGE = 90;
     private InetAddress victim;
     private LocalDateTime now;
